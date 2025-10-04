@@ -1,4 +1,4 @@
-# Captionize 專案深度分析報告：基於 Whisper.net 的高效能字幕生成工具
+# Captionize
 
 ## 1. 專案標題與徽章
 
