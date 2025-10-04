@@ -1,4 +1,5 @@
 # Captionize
+<img width="1433" height="741" alt="螢幕擷取畫面 2025-10-04 182409" src="https://github.com/user-attachments/assets/14e6b8ec-55d6-4f79-be16-d5e1326c5bcb" />
 
 ## 1. 專案標題與徽章
 
