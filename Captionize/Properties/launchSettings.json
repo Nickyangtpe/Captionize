@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Captionize (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "Captionize (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

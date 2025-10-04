@@ -1,0 +1,161 @@
+<Window
+    x:Class="Captionize.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Captionize - AI 影片字幕生成器">
+
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="400"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- 左側設定面板 -->
+        <Border Grid.Column="0" 
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="0,0,1,0">
+            <ScrollViewer Padding="24,20">
+                <StackPanel Spacing="20">
+
+                    <!-- 影片檔案選擇區 -->
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="📹 影片/音訊檔案" FontSize="16" FontWeight="SemiBold"/>
+                        <Button x:Name="BtnSelectVideo" Content="選擇檔案" Click="BtnSelectVideo_Click" HorizontalAlignment="Stretch" Style="{ThemeResource AccentButtonStyle}"/>
+                        <TextBlock x:Name="TxtSelectedVideo" Text="尚未選擇檔案" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12"/>
+                    </StackPanel>
+
+                    <!-- AI 模型設定 -->
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="🤖 AI 模型" FontSize="16" FontWeight="SemiBold"/>
+                        <ComboBox x:Name="ModelComboBox" Header="選擇模型" HorizontalAlignment="Stretch" PlaceholderText="請選擇 Whisper 模型"/>
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Button x:Name="BtnDownloadModel" Content="下載模型" Click="BtnDownloadModel_Click" Grid.Column="0"/>
+                            <StackPanel Grid.Column="1" Spacing="4" Visibility="Collapsed" x:Name="ModelDownloadPanel">
+                                <ProgressBar x:Name="ModelDownloadProgress" Minimum="0" Maximum="100" Height="12"/>
+                                <TextBlock x:Name="ModelDownloadStatus" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                    <Button x:Name="BtnOpenModelFolder" Content="📂 打開模型資料夾" Click="BtnOpenModelFolder_Click" HorizontalAlignment="Stretch"/>
+
+
+
+                    <!-- 硬體加速設定 -->
+                    <StackPanel Spacing="12">
+                        <ComboBox x:Name="RuntimePriorityList" Header="執行優先順序" HorizontalAlignment="Stretch">
+                            <ComboBoxItem Content="CUDA"/>
+                            <ComboBoxItem Content="Vulkan"/>
+                            <ComboBoxItem Content="CPU" IsSelected="True"/>
+                        </ComboBox>
+                        <Button x:Name="BtnAutoDetectCuda" Content="🔍 自動偵測 CUDA" Click="BtnAutoDetectCuda_Click" HorizontalAlignment="Stretch"/>
+                    </StackPanel>
+
+                    <!-- 轉錄設定 -->
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="🌐 轉錄設定" FontSize="16" FontWeight="SemiBold"/>
+                        <ComboBox x:Name="LanguageComboBox" Header="語言" HorizontalAlignment="Stretch">
+                            <ComboBoxItem Content="自動偵測" Tag="auto" IsSelected="True"/>
+                            <ComboBoxItem Content="英文 (English)" Tag="en"/>
+                            <ComboBoxItem Content="中文 (Chinese)" Tag="zh"/>
+                            <ComboBoxItem Content="日文 (Japanese)" Tag="ja"/>
+                            <ComboBoxItem Content="韓文 (Korean)" Tag="ko"/>
+                            <ComboBoxItem Content="西班牙文 (Spanish)" Tag="es"/>
+                            <ComboBoxItem Content="法文 (French)" Tag="fr"/>
+                        </ComboBox>
+                        <StackPanel Spacing="4">
+                            <Grid>
+                                <TextBlock Text="Temperature" HorizontalAlignment="Left"/>
+                                <TextBlock x:Name="LblTempVal" Text="0.2" HorizontalAlignment="Right" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                            </Grid>
+                            <Slider x:Name="SliderTemp" Minimum="0" Maximum="1" Value="0.2" StepFrequency="0.1" ValueChanged="SliderTemp_ValueChanged"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- 動作按鈕 -->
+                    <StackPanel Spacing="12">
+                        <Button x:Name="BtnStart" Content="▶ 開始生成字幕" Click="BtnStart_Click" HorizontalAlignment="Stretch" Style="{ThemeResource AccentButtonStyle}" Height="40" FontSize="15"/>
+                        <Button x:Name="BtnStop" Content="⏹ 停止" Click="BtnStop_Click" IsEnabled="False" HorizontalAlignment="Stretch" Height="40"/>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- 右側：結果顯示區 -->
+        <Grid Grid.Column="1" Padding="24,20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="200"/>
+            </Grid.RowDefinitions>
+
+            <!-- 狀態列 -->
+            <Border Grid.Row="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" Padding="16,12" CornerRadius="8" Margin="0,0,0,16">
+                <Grid>
+                    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        <TextBlock Text="狀態：" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TxtStatus" Text="準備就緒" VerticalAlignment="Center" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                    </StackPanel>
+                    <StackPanel x:Name="TranscriptionProgressPanel" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
+                        <ProgressBar x:Name="TranscriptionProgress" Width="150" Minimum="0" Maximum="100"/>
+                        <TextBlock x:Name="TranscriptionProgressText" FontWeight="SemiBold"/>
+                    </StackPanel>
+
+                    <ProgressRing x:Name="ProcessingRing" IsActive="False" Width="24" Height="24" HorizontalAlignment="Right"/>
+                </Grid>
+            </Border>
+
+
+            <!-- 字幕輸出區 -->
+            <Grid Grid.Row="1" Margin="0,0,0,16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Border Grid.Row="0" Background="{ThemeResource AccentFillColorDisabledBrush}" Padding="16,12" CornerRadius="8,8,0,0">
+                    <Grid>
+                        <TextBlock Text="📝 字幕內容 (SRT)" FontSize="15" FontWeight="SemiBold"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                            <Button x:Name="BtnCopyTranscript" Content="複製" Click="BtnCopyTranscript_Click" Style="{ThemeResource SubtleButtonStyle}"/>
+                            <Button x:Name="BtnSaveTranscript" Content="儲存" Click="BtnSaveTranscript_Click" Style="{ThemeResource SubtleButtonStyle}"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                <ScrollViewer Grid.Row="1" Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1,0,1,1" CornerRadius="0,0,8,8">
+                    <TextBox x:Name="TxtTranscript" TextWrapping="Wrap" FontFamily="Consolas" AcceptsReturn="True" IsReadOnly="True" BorderThickness="0"/>
+                </ScrollViewer>
+            </Grid>
+
+            <!-- 日誌區 -->
+            <Grid Grid.Row="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Border Grid.Row="0" Background="{ThemeResource LayerFillColorDefaultBrush}" Padding="16,10" CornerRadius="8,8,0,0">
+                    <TextBlock Text="📋 執行日誌" FontSize="13" FontWeight="SemiBold"/>
+                </Border>
+                <ScrollViewer Grid.Row="1" Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="0,0,8,8">
+                    <TextBlock x:Name="TxtLog" TextWrapping="Wrap" FontFamily="Consolas" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                </ScrollViewer>
+            </Grid>
+        </Grid>
+
+        <!-- ++ FFmpeg 下載進度覆蓋層 ++ -->
+        <Grid x:Name="FFmpegDownloadPanel" Grid.ColumnSpan="2" Background="#A0000000" Visibility="Collapsed">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" Padding="40" CornerRadius="8" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" MinWidth="400">
+                <TextBlock Text="正在準備 FFmpeg..." FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                <TextBlock Text="首次執行需要下載必要元件，請稍候。" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center"/>
+                <ProgressBar x:Name="FFmpegDownloadProgress" Minimum="0" Maximum="100" Margin="0,10,0,0"/>
+
+                <TextBlock x:Name="FFmpegDownloadStatus" HorizontalAlignment="Center" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+
+            </StackPanel>
+        </Grid>
+
+    </Grid>
+</Window>
