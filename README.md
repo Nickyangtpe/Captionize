@@ -3,8 +3,11 @@
 ## 1. 專案標題與徽章
 
 # Captionize
+<img width="1433" height="741" alt="螢幕擷取畫面 2025-10-04 182409" src="https://github.com/user-attachments/assets/14e6b8ec-55d6-4f79-be16-d5e1326c5bcb" />
 
-> **Captionize** 是一個高效能的桌面應用程式，專門用於透過 OpenAI 的 Whisper 語音識別模型，快速且精確地從影片或音訊檔案中提取並生成 SRT 格式的字幕。
+## 1. 專案標題與徽章
+
+**Captionize** 是一個高效能的桌面應用程式，專門用於透過 OpenAI 的 Whisper 語音識別模型，快速且精確地從影片或音訊檔案中提取並生成 SRT 格式的字幕。
 
 | 狀態 | 資訊 |
 | :--- | :--- |
