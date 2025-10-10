@@ -69,8 +69,6 @@ namespace Captionize
             Log("應用程式已啟動，準備就緒。");
         }
 
-        #region FFmpeg 處理
-
         private async Task CheckFFmpegExistsAsync()
         {
             try
@@ -160,9 +158,6 @@ namespace Captionize
                 throw new FileNotFoundException("在下載的壓縮檔中找不到 'bin/ffmpeg.exe'。");
             }
         }
-        #endregion
-
-        #region 字幕生成核心流程
 
         private async void BtnStart_Click(object sender, RoutedEventArgs e)
         {
@@ -182,11 +177,8 @@ namespace Captionize
             {
                 await EnsureFFmpegReady();
 
-                // ================================
-                // 設定 GPU/CPU 運行模式
-                // ================================
                 var runtimeStr = (RuntimePriorityList.SelectedItem as ComboBoxItem)?.Content.ToString();
-                bool UseGPU = false; // use cpu
+                bool UseGPU = false;
 
                 switch (runtimeStr)
                 {
@@ -204,13 +196,19 @@ namespace Captionize
 
                 var factory = WhisperFactory.FromPath(modelFile.Path, new WhisperFactoryOptions { UseGpu = UseGPU });
 
-                // 創建 Processor 並指定 Runtime
                 var language = (LanguageComboBox.SelectedItem as ComboBoxItem)?.Tag as string ?? "auto";
-                _processor = factory.CreateBuilder()
-                                    .WithLanguage(language)
-                                    .WithTemperature((float)SliderTemp.Value)
-                                    .Build();
 
+                var builder = factory.CreateBuilder()
+                    .WithLanguage(language)
+                    .WithTemperature((float)SliderTemp.Value);
+
+                if (ToggleTranslate.IsOn)
+                    builder.WithTranslate();
+
+                if (!string.IsNullOrEmpty(TxtPrompt.Text))
+                    builder.WithPrompt(TxtPrompt.Text);
+
+                _processor = builder.Build();
 
                 Log("✓ 模型載入完成");
 
@@ -229,6 +227,7 @@ namespace Captionize
                 {
                     TranscriptionProgressPanel.Visibility = Visibility.Visible;
                     TranscriptionProgress.Value = 0;
+                    TranscriptionProgressText.Text = "0%";
                 });
 
                 await StartAudioTranscriptionUwp(audioFile, audioDuration);
@@ -253,7 +252,6 @@ namespace Captionize
                 SetBusyState(false);
             }
         }
-
 
         private async Task StartAudioTranscriptionUwp(StorageFile audioFile, TimeSpan totalDuration)
         {
@@ -352,16 +350,11 @@ namespace Captionize
             return outputAudioFile;
         }
 
-        #endregion
-
-        #region UI 事件處理
-
-        void AddFileTypes(FileOpenPicker picker, params string[] exts)
+        private void ToggleTranslate_Toggled(object sender, RoutedEventArgs e)
         {
-            foreach (var ext in exts)
+            if (sender is ToggleSwitch toggleSwitch)
             {
-                // 確保 ext 有「.」
-                picker.FileTypeFilter.Add(ext.StartsWith(".") ? ext : "." + ext);
+                TranslateLanguageComboBox.IsEnabled = toggleSwitch.IsOn;
             }
         }
 
@@ -387,6 +380,44 @@ namespace Captionize
             }
         }
 
+        private void RootGrid_DragOver(object sender, DragEventArgs e)
+        {
+            e.AcceptedOperation = DataPackageOperation.Copy;
+        }
+
+        private void RootGrid_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.DataView.Contains(StandardDataFormats.StorageItems))
+            {
+                DragDropOverlay.Visibility = Visibility.Visible;
+            }
+        }
+
+        private void RootGrid_DragLeave(object sender, DragEventArgs e)
+        {
+            DragDropOverlay.Visibility = Visibility.Collapsed;
+        }
+
+        private async void RootGrid_Drop(object sender, DragEventArgs e)
+        {
+            DragDropOverlay.Visibility = Visibility.Collapsed;
+
+            if (e.DataView.Contains(StandardDataFormats.StorageItems))
+            {
+                var items = await e.DataView.GetStorageItemsAsync();
+                if (items.Any())
+                {
+                    if (items[0] is StorageFile file)
+                    {
+                        _selectedVideoFile = file;
+                        var props = await file.GetBasicPropertiesAsync();
+                        TxtSelectedVideo.Text = $"✓ {file.Name} ({FormatFileSize(props.Size)})";
+                        Log($"已透過拖曳方式選擇檔案: {file.Name}");
+                    }
+                }
+            }
+        }
+
         private async void BtnOpenModelFolder_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -394,7 +425,6 @@ namespace Captionize
                 var modelsFolder = await ApplicationData.Current.LocalFolder.GetFolderAsync(ModelsFolder);
                 var folderPath = modelsFolder.Path;
 
-                // 使用系統檔案總管開啟資料夾
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = folderPath,
@@ -417,12 +447,11 @@ namespace Captionize
             var model = _models[ModelComboBox.SelectedIndex];
             var modelsFolder = await ApplicationData.Current.LocalFolder.GetFolderAsync(ModelsFolder);
 
-            // 嘗試取得檔案
             var existingFile = await modelsFolder.TryGetItemAsync(model.Name) as StorageFile;
             if (existingFile != null)
             {
                 var properties = await existingFile.GetBasicPropertiesAsync();
-                ulong fileSize = properties.Size; // ulong
+                ulong fileSize = properties.Size;
                 ulong modelSizeBytes = (ulong)ParseSizeToBytes(model.Size);
 
                 const ulong tolerance = 10 * 1024 * 1024;
@@ -437,7 +466,6 @@ namespace Captionize
                     Log($"{model.DisplayName} 檔案大小不符或損壞，重新下載。");
                 }
             }
-
 
             BtnDownloadModel.IsEnabled = false;
             ModelDownloadPanel.Visibility = Visibility.Visible;
@@ -490,7 +518,6 @@ namespace Captionize
 
             return 0;
         }
-
 
         private void BtnStop_Click(object sender, RoutedEventArgs e)
         {
@@ -558,9 +585,7 @@ namespace Captionize
         {
             if (LblTempVal != null) LblTempVal.Text = e.NewValue.ToString("F1");
         }
-        #endregion
 
-        #region 輔助方法
         private void SetBusyState(bool isBusy)
         {
             if (isBusy)
@@ -683,8 +708,5 @@ namespace Captionize
                 TxtLog.Text = $"[{DateTime.Now:HH:mm:ss}] {text}\n" + TxtLog.Text;
             });
         }
-
-
-        #endregion
     }
 }

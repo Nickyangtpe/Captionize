@@ -10,7 +10,7 @@
   <Identity
     Name="b1c56b8d-a2ce-4125-9c76-2fa64f1cb2c1"
     Publisher="CN=BriefBassoon117"
-    Version="1.0.1.0" />
+    Version="1.0.3.0" />
 
   <mp:PhoneIdentity PhoneProductId="b1c56b8d-a2ce-4125-9c76-2fa64f1cb2c1" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 

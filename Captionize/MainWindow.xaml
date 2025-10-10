@@ -4,13 +4,18 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="Captionize - AI 影片字幕生成器">
 
-    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
+          AllowDrop="True"
+          DragEnter="RootGrid_DragEnter"
+          DragLeave="RootGrid_DragLeave"
+          Drop="RootGrid_Drop"
+          DragOver="RootGrid_DragOver">
+
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="400"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- 左側設定面板 -->
         <Border Grid.Column="0" 
                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
@@ -18,14 +23,12 @@
             <ScrollViewer Padding="24,20">
                 <StackPanel Spacing="20">
 
-                    <!-- 影片檔案選擇區 -->
                     <StackPanel Spacing="12">
                         <TextBlock Text="📹 影片/音訊檔案" FontSize="16" FontWeight="SemiBold"/>
                         <Button x:Name="BtnSelectVideo" Content="選擇檔案" Click="BtnSelectVideo_Click" HorizontalAlignment="Stretch" Style="{ThemeResource AccentButtonStyle}"/>
                         <TextBlock x:Name="TxtSelectedVideo" Text="尚未選擇檔案" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12"/>
                     </StackPanel>
 
-                    <!-- AI 模型設定 -->
                     <StackPanel Spacing="12">
                         <TextBlock Text="🤖 AI 模型" FontSize="16" FontWeight="SemiBold"/>
                         <ComboBox x:Name="ModelComboBox" Header="選擇模型" HorizontalAlignment="Stretch" PlaceholderText="請選擇 Whisper 模型"/>
@@ -43,9 +46,6 @@
                     </StackPanel>
                     <Button x:Name="BtnOpenModelFolder" Content="📂 打開模型資料夾" Click="BtnOpenModelFolder_Click" HorizontalAlignment="Stretch"/>
 
-
-
-                    <!-- 硬體加速設定 -->
                     <StackPanel Spacing="12">
                         <ComboBox x:Name="RuntimePriorityList" Header="執行優先順序" HorizontalAlignment="Stretch">
                             <ComboBoxItem Content="CUDA"/>
@@ -55,18 +55,25 @@
                         <Button x:Name="BtnAutoDetectCuda" Content="🔍 自動偵測 CUDA" Click="BtnAutoDetectCuda_Click" HorizontalAlignment="Stretch"/>
                     </StackPanel>
 
-                    <!-- 轉錄設定 -->
                     <StackPanel Spacing="12">
                         <TextBlock Text="🌐 轉錄設定" FontSize="16" FontWeight="SemiBold"/>
                         <ComboBox x:Name="LanguageComboBox" Header="語言" HorizontalAlignment="Stretch">
                             <ComboBoxItem Content="自動偵測" Tag="auto" IsSelected="True"/>
-                            <ComboBoxItem Content="英文 (English)" Tag="en"/>
+                            <ComboBoxItem Content="英文 (English  )" Tag="en"/>
                             <ComboBoxItem Content="中文 (Chinese)" Tag="zh"/>
                             <ComboBoxItem Content="日文 (Japanese)" Tag="ja"/>
                             <ComboBoxItem Content="韓文 (Korean)" Tag="ko"/>
                             <ComboBoxItem Content="西班牙文 (Spanish)" Tag="es"/>
                             <ComboBoxItem Content="法文 (French)" Tag="fr"/>
                         </ComboBox>
+
+                        <TextBox x:Name="TxtPrompt" Header="提示詞 (Prompt)" PlaceholderText="選填，提供專有名詞或縮寫以提高準確率" HorizontalAlignment="Stretch"/>
+
+                        <ToggleSwitch x:Name="ToggleTranslate" Header="開啟翻譯" OffContent="否" OnContent="是" Toggled="ToggleTranslate_Toggled"/>
+                        <ComboBox x:Name="TranslateLanguageComboBox" Header="翻譯目標語言" HorizontalAlignment="Stretch" IsEnabled="False" PlaceholderText="請選擇語言">
+                            <ComboBoxItem Content="英文 (English)" Tag="en" IsSelected="True"/>
+                        </ComboBox>
+
                         <StackPanel Spacing="4">
                             <Grid>
                                 <TextBlock Text="Temperature" HorizontalAlignment="Left"/>
@@ -76,7 +83,6 @@
                         </StackPanel>
                     </StackPanel>
 
-                    <!-- 動作按鈕 -->
                     <StackPanel Spacing="12">
                         <Button x:Name="BtnStart" Content="▶ 開始生成字幕" Click="BtnStart_Click" HorizontalAlignment="Stretch" Style="{ThemeResource AccentButtonStyle}" Height="40" FontSize="15"/>
                         <Button x:Name="BtnStop" Content="⏹ 停止" Click="BtnStop_Click" IsEnabled="False" HorizontalAlignment="Stretch" Height="40"/>
@@ -85,7 +91,6 @@
             </ScrollViewer>
         </Border>
 
-        <!-- 右側：結果顯示區 -->
         <Grid Grid.Column="1" Padding="24,20">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -93,7 +98,6 @@
                 <RowDefinition Height="200"/>
             </Grid.RowDefinitions>
 
-            <!-- 狀態列 -->
             <Border Grid.Row="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" Padding="16,12" CornerRadius="8" Margin="0,0,0,16">
                 <Grid>
                     <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
@@ -109,8 +113,6 @@
                 </Grid>
             </Border>
 
-
-            <!-- 字幕輸出區 -->
             <Grid Grid.Row="1" Margin="0,0,0,16">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -130,7 +132,6 @@
                 </ScrollViewer>
             </Grid>
 
-            <!-- 日誌區 -->
             <Grid Grid.Row="2">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -145,17 +146,28 @@
             </Grid>
         </Grid>
 
-        <!-- ++ FFmpeg 下載進度覆蓋層 ++ -->
         <Grid x:Name="FFmpegDownloadPanel" Grid.ColumnSpan="2" Background="#A0000000" Visibility="Collapsed">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" Padding="40" CornerRadius="8" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" MinWidth="400">
                 <TextBlock Text="正在準備 FFmpeg..." FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center"/>
                 <TextBlock Text="首次執行需要下載必要元件，請稍候。" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center"/>
                 <ProgressBar x:Name="FFmpegDownloadProgress" Minimum="0" Maximum="100" Margin="0,10,0,0"/>
-
                 <TextBlock x:Name="FFmpegDownloadStatus" HorizontalAlignment="Center" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-
             </StackPanel>
         </Grid>
+
+        <Border x:Name="DragDropOverlay"
+                Grid.ColumnSpan="2"
+                Background="{ThemeResource SystemControlAcrylicWindowBrush}"
+                BorderBrush="{ThemeResource AccentFillColorDefaultBrush}"
+                BorderThickness="2"
+                CornerRadius="8"
+                Visibility="Collapsed">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16">
+                <FontIcon FontFamily="Segoe Fluent Icons" Glyph="&#xE896;" FontSize="64" HorizontalAlignment="Center"/>
+                <TextBlock Text="將檔案拖放到此處" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
+                <TextBlock Text="放開滑鼠即可選取檔案" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}" HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Border>
 
     </Grid>
 </Window>
